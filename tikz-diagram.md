@@ -27,9 +27,9 @@ colleague would and say what you chose in the report. Do not stop to ask.
 
 ## Procedure
 
-1. **Check tooling** with one command each: `which pdflatex` and
-   `which pdftoppm`. If either is missing, stop and report what to install
-   (MacTeX or BasicTeX for pdflatex; `brew install poppler` for pdftoppm).
+1. **Check tooling** — follow the Dependencies section below. Do not write
+   any LaTeX until you have a working compiler and rasterizer, or have
+   established that neither can be had without the requester's action.
 2. **Write `<base>.tex`** in the output directory using the conventions below.
 3. **Compile**:
    `pdflatex -interaction=nonstopmode -halt-on-error -output-directory <dir> <dir>/<base>.tex`
@@ -47,6 +47,85 @@ colleague would and say what you chose in the report. Do not stop to ask.
    still imperfect, deliver and name the remaining defect.
 6. **Clean up** `.aux` and `.log` in the output directory. Keep `.tex`,
    `.pdf`, and `.png`.
+
+## Dependencies
+
+You need a LaTeX compiler with TikZ and the `standalone` class, and a way to
+turn a PDF into a PNG. Most machines have neither out of the box, so treat a
+missing tool as normal and handle it, not as a failure.
+
+**Detect.** Run `which pdflatex` and `which pdftoppm`. If `pdflatex` is not
+on PATH, check the usual install locations before concluding it is absent —
+a fresh TeX install often is not on PATH in the current shell:
+
+- macOS: `/Library/TeX/texbin/pdflatex`
+- Linux: `/usr/bin/pdflatex`, `/usr/local/texlive/*/bin/*/pdflatex`
+- Windows: `C:\Users\<user>\AppData\Local\Programs\MiKTeX\miktex\bin\x64\pdflatex.exe`
+
+If found there, use the full path for the rest of the run and mention the
+PATH fix in the report. Do the same for `pdftoppm`
+(`/opt/homebrew/bin`, `/usr/local/bin`, `/usr/bin`).
+
+**Rasterizer fallbacks**, in order, if `pdftoppm` is absent:
+`magick -density <dpi> <pdf> <png>` (ImageMagick 7),
+`convert -density <dpi> <pdf> <png>` (ImageMagick 6),
+`gs -q -dSAFER -dBATCH -dNOPAUSE -sDEVICE=png16m -r<dpi> -sOutputFile=<png> <pdf>` (Ghostscript),
+and on macOS as a last resort `sips -s format png <pdf> --out <png>`
+(72 dpi only — say so in the report and recommend installing poppler).
+
+**Compiler fallback.** If no LaTeX is installed but `docker` is available and
+running, compile with the official image instead of installing anything:
+
+```
+docker run --rm -v "<dir>":/work -w /work texlive/texlive:latest \
+  pdflatex -interaction=nonstopmode -halt-on-error <base>.tex
+```
+
+The first pull is large (a few GB); note that in the report.
+
+**Missing-package check.** BasicTeX and minimal TeX Live installs lack
+`standalone` and sometimes `pgf`. A compile error of the form
+`! LaTeX Error: File 'standalone.cls' not found` or `File 'tikz.sty' not found`
+means packages, not source. Install them (see below) rather than rewriting
+the diagram around the missing package.
+
+**Installing.** Do not install software unless the request says to
+("install whatever is needed" or similar). Without that authorization,
+put the exact commands for the detected platform in the report under
+`install:` and end the run — the requester runs them and re-asks. Commands
+that need `sudo` cannot run from an agent in any case; always list those for
+the requester.
+
+macOS (Homebrew):
+```
+brew install --cask basictex          # ~100 MB; MacTeX is the 5 GB alternative
+eval "$(/usr/libexec/path_helper)"    # or open a new terminal
+sudo tlmgr update --self
+sudo tlmgr install standalone pgf     # standalone class + TikZ; not in BasicTeX
+brew install poppler                  # pdftoppm
+```
+
+Debian / Ubuntu:
+```
+sudo apt-get install -y texlive-latex-base texlive-latex-extra texlive-pictures texlive-fonts-recommended poppler-utils
+```
+(`texlive-latex-extra` supplies `standalone`, `texlive-pictures` supplies TikZ.)
+
+Fedora / RHEL:
+```
+sudo dnf install -y texlive-scheme-basic texlive-standalone texlive-pgf texlive-helvetic poppler-utils
+```
+
+Windows:
+```
+winget install MiKTeX.MiKTeX          # installs missing packages on first use
+winget install oschwartz10612.Poppler # pdftoppm; or: choco install poppler
+```
+MiKTeX prompts to install `standalone` and `pgf` on the first compile; with
+the console open, allow it.
+
+After any install, verify by compiling the skeleton below to a PDF and
+rasterizing it once before writing the requested diagram.
 
 ## TikZ conventions
 
@@ -123,6 +202,7 @@ png: <dir>/<base>.png  (<width>×<height> px)
 markdown: ![<one-line alt text>](<relative path to png>)
 choices: <bullet list of any layout or wording decisions the description left open; "none" if none>
 defects: <anything still wrong after the pass cap; "none" if clean>
+install: <only when a dependency blocked the run: the platform-specific commands to run, then "re-run the request">
 ```
 
 Do not paste the LaTeX source into the report; it is in the file. Do not

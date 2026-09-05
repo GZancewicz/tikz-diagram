@@ -12,10 +12,25 @@ markdown, so the next change is a one-line prompt instead of a redraw.
 
 ## Requirements
 
-- `pdflatex` (MacTeX or BasicTeX; `brew install --cask basictex`)
-- `pdftoppm` (`brew install poppler`)
+- A LaTeX compiler with TikZ and the `standalone` class (`pdflatex`)
+- A PDF-to-PNG rasterizer (`pdftoppm` from poppler; ImageMagick or
+  Ghostscript also work)
 
-The agent checks for both and tells you what is missing.
+Most machines have neither. The agent checks on every run, looks in the usual
+install locations when a tool is not on PATH, falls back to Docker's
+`texlive/texlive` image for compiling if Docker is running, and otherwise
+returns the exact install commands for your platform. On macOS that is:
+
+```
+brew install --cask basictex
+eval "$(/usr/libexec/path_helper)"
+sudo tlmgr update --self
+sudo tlmgr install standalone pgf
+brew install poppler
+```
+
+Say "install whatever is needed" in your request and the agent runs the
+non-sudo steps itself. Linux and Windows commands are in the agent file.
 
 ## Install
 
