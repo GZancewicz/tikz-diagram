@@ -25,6 +25,39 @@ The request carries, in prose:
 If the description is ambiguous on layout, pick the reading a careful
 colleague would and say what you chose in the report. Do not stop to ask.
 
+### Two kinds of description
+
+A request either describes a **drawing** ("A left of B, dashed arrow, red")
+or describes a **system** ("our office has managed laptops and WiFi; staff
+also work remotely; we administer these cloud services; clients' environments
+are outside our control"). Handle the second kind by deriving the drawing
+yourself, the way a security architect would sketch a system-boundary
+figure:
+
+- **Group by trust zone.** Each physical site, hosting environment, or
+  administrative domain becomes a dashed, tinted region with a bold title.
+  Components inside are boxes with a name line and a `\scriptsize` detail
+  line (what it is, who runs it, the key control on it).
+- **One boundary.** If the description names a system, an authorization
+  boundary, or "what is in scope", draw a solid, heavier rounded rectangle
+  around every in-scope region and title it with the system name.
+- **Externals below.** Things named as out of scope, not controlled, or
+  belonging to someone else sit in a row beneath the boundary in the
+  external (tan) style, with a small caption saying they are outside.
+- **A transit node between zones.** When traffic between sites and cloud
+  services crosses a network, put a cloud shape ("Internet · TLS") between
+  them and route the data flows through it.
+- **Two edge classes.** Data flows solid; control or authentication
+  relationships (MDM enforcing baselines, an identity provider fronting
+  services) dashed in a second colour, with a short caption on each.
+- **Legend always**, since three styles carry meaning.
+- **Counts and facts verbatim.** Whatever numbers, product names, or
+  controls the description gives go into the detail lines unchanged; invent
+  none.
+
+The report's `choices:` list records every grouping and placement decision
+you made from a system description.
+
 ## Procedure
 
 1. **Check tooling** — follow the Dependencies section below. Do not write
@@ -136,7 +169,8 @@ Start from this skeleton; it is known to compile.
 \usepackage[T1]{fontenc}
 \usepackage{helvet}
 \renewcommand{\familydefault}{\sfdefault}
-\usetikzlibrary{shapes.geometric,arrows.meta,positioning,fit,backgrounds,calc}
+\usetikzlibrary{shapes.geometric,shapes.symbols,arrows.meta,positioning,fit,backgrounds,calc}
+\hyphenpenalty=10000 \exhyphenpenalty=10000
 
 \definecolor{ink}{HTML}{2E3440}
 \definecolor{svc}{HTML}{DCE6F2}    \definecolor{svcline}{HTML}{4C6A92}
@@ -187,8 +221,19 @@ Rules that keep the output clean:
 - **Numbers with units**: `40\,ms`, `2\,GB` (thin space).
 - **Palette**: keep to the defined colours unless the request names others.
   Services blue, data stores green, external/third-party tan, alerts red.
+- **Multi-line component boxes**: give the style a `text width` (30–34 mm)
+  and `align=center`; name on the first line, `\\ \scriptsize` detail line
+  after, items separated by ` · `. The `\hyphenpenalty` lines in the skeleton
+  stop words breaking mid-syllable in narrow boxes.
+- **Cloud / network node**: `\node[cloud, draw, cloud puffs=13, aspect=2.2,
+  minimum width=26mm, minimum height=14mm] {Internet\\ \scriptsize TLS};`
+  (needs `shapes.symbols`, already loaded).
+- **Nested regions**: inner groups are `fit` nodes on the background layer;
+  the outer boundary is another `fit` node over the inner groups, also on
+  the background layer, declared after them so it draws beneath. Give the
+  outer one `inner ysep` large enough (about 24 pt) for its title.
 - **Never** load packages beyond those in the skeleton without need; `standalone`
-  plus the six TikZ libraries cover nearly everything. Add `decorations.pathmorphing`
+  plus the seven TikZ libraries cover nearly everything. Add `decorations.pathmorphing`
   only for zigzag/snake edges, `shapes.misc` for cross-outs, `matrix` for grids.
 
 ## Report

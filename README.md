@@ -1,14 +1,15 @@
 # tikz-diagram
 
-A Claude Code agent that turns a plain-English description of a diagram into
-a TikZ/LaTeX drawing and a PNG you can drop into markdown. It is for the cases
-mermaid cannot handle: trust-boundary regions, curved routes, several arrow
-styles with a legend, exact label placement, custom shapes, and a palette you
-control.
+A Claude Code agent that turns a plain-English description into a TikZ/LaTeX
+drawing and a PNG you can drop into markdown. It is for the diagrams mermaid
+cannot draw: nested trust zones and a system boundary, curved routes, several
+edge styles with a legend, shapes like clouds, cylinders, and diamonds, exact
+label placement, and a palette you control.
 
-The agent writes the `.tex`, compiles it, rasterizes it, looks at the PNG, and
-fixes layout defects before handing back. You keep the `.tex` next to the
-markdown, so the next change is a one-line prompt instead of a redraw.
+You describe the subject, not the drawing. The agent decides the layout,
+writes the `.tex`, compiles it, rasterizes it, looks at the PNG, and fixes
+what is wrong before handing back. You keep the `.tex` next to the markdown,
+so the next change is a one-line request instead of a redraw.
 
 ## Requirements
 
@@ -44,99 +45,57 @@ Restart Claude Code (agents are discovered at session start).
 
 ## Use
 
-Ask in prose, in any Claude Code session:
+Ask in any Claude Code session. Naming the agent guarantees the routing:
 
 ```
-Use the tikz-diagram agent: <description>
+Use the tikz-diagram agent: <what you want drawn>
 ```
 
-Plain "draw me a diagram of ..." also routes to it once installed, because the
-agent's description tells Claude when to use it. Output defaults to
-`diagrams/` under the repo root at 2000 px wide.
+Output goes to `diagrams/` under the repo root, 2000 px wide, unless you say
+otherwise.
 
-## Writing the description
+## Example
 
-Say where things go, how they connect, and what the line styles mean. The
-agent takes the description literally and adds nothing except a legend when
-three or more styles carry meaning. A good description covers:
-
-- **Nodes and arrangement**: "left to right: A → B → C; D below B".
-- **Edges and labels**: "A→B solid, labelled HTTPS; B→C dashed, labelled publish".
-- **Regions**: "enclose B, C, D in a dashed rounded rectangle labelled Our VPC".
-- **Special routes**: "a curved red arrow from D back to A labelled retry".
-- **Shapes and emphasis**: "database as a cylinder", "terminal states double-bordered".
-- **Colour code**: "services blue, stores green, third-party tan".
-
-### Example 1 — order pipeline
+This is the whole prompt. No sizes, no positions, no colours:
 
 ```
-Use the tikz-diagram agent. Draw our order pipeline, PNG about 2000 px wide,
-output to diagrams/.
-
-Layout, left to right: Browser → API Gateway → Orders service → Kafka topic
-"orders.created" → three workers (worker-1..3, stacked vertically) → Payments API
-(3rd party). Put a Postgres database (cylinder shape) directly below the Orders
-service.
-
-Enclose everything except the Browser and the Payments API in a dashed rounded
-rectangle labelled "Our VPC" in the top-left corner, with a faint background tint.
-
-Edge styles: synchronous calls are solid blue arrows, async messages are dashed
-grey arrows. Label the sync edges HTTPS, gRPC, INSERT, and add p95 latencies on
-Gateway→Orders (40 ms) and worker-2→Payments (120 ms). Label the async edge
-Orders→Kafka "publish".
-
-Add a red curved arrow from the bottom of worker-3 back to the bottom of Kafka,
-labelled "retry ×3, then dead-letter".
-
-Colour code: services light blue, data stores light green, third-party/external
-boxes light tan. Sans-serif font, muted palette. Put a legend under the VPC box
-for the three arrow styles, the trust boundary, and the "outside our control" fill.
+Use the tikz-diagram agent. Give me a Markov decision process diagram, 3
+states, 2 actions per state, pick arbitrary transition probabilities. Use
+circles for states and diamonds for actions.
 ```
 
-![Order pipeline](examples/pipeline.png)
+![Markov decision process](examples/mdp.png)
 
-Source: [examples/pipeline.tex](examples/pipeline.tex)
+Source: [examples/mdp.tex](examples/mdp.tex)
 
-### Example 2 — job state machine
-
-```
-Use the tikz-diagram agent. Draw a state machine for a background job,
-1600 px wide, output to diagrams/.
-
-States, left to right: Queued → Running → Succeeded. Below Running put Failed.
-Transitions: Queued→Running "worker picks up"; Running→Succeeded "exit 0";
-Running→Failed "exit ≠ 0 or timeout"; Failed→Queued a curved red arrow labelled
-"retry (max 3)"; Failed→Dead-lettered (a tan box to the right of Failed)
-labelled "attempts exhausted". Succeeded and Dead-lettered are terminal: draw
-them with a double border. Mark Queued as the initial state with a short arrow
-from a filled dot on its left. Legend for the three arrow styles.
-```
-
-![Job state machine](examples/job-states.png)
-
-Source: [examples/job-states.tex](examples/job-states.tex)
+The agent chose the row layout with actions above and below each state, the
+probabilities (each action's sum to 1), the two arrow styles, the route for
+the one long transition under the row, and the legend. All of that is
+listed in the report it returns.
 
 ## What comes back
 
 ```
-diagram: order-pipeline
-tex: diagrams/order-pipeline.tex
-png: diagrams/order-pipeline.png  (2000×755 px)
-markdown: ![Order pipeline with VPC boundary and retry loop](diagrams/order-pipeline.png)
-choices: <layout decisions the description left open>
+diagram: mdp
+tex: diagrams/mdp.tex
+png: diagrams/mdp.png  (2009×1240 px)
+markdown: ![Markov decision process](diagrams/mdp.png)
+choices: <the layout decisions the agent made, including the probability table>
 defects: none
 ```
 
+The `choices` list is worth reading once. It says what the agent decided on
+your behalf, which is usually where you want to push back.
+
 ## Changing a diagram
 
-Point Claude at the `.tex` and describe the change ("move Postgres to the
-right of Orders", "add a Redis cache between Gateway and Orders"). The agent
-edits the source, recompiles, and re-checks the PNG.
+Point Claude at the `.tex` and say what to change ("add a reward on each
+transition", "make s3 terminal"). The agent edits the source, recompiles, and
+re-checks the PNG.
 
 ## Layout of this repo
 
 ```
-tikz-diagram.md   the agent: procedure, TikZ conventions, report format
-examples/         the two diagrams above, .tex and .png
+tikz-diagram.md   the agent: procedure, dependency handling, TikZ conventions, report format
+examples/         the diagram above, .tex and .png
 ```
