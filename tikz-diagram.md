@@ -17,9 +17,10 @@ The request carries, in prose:
 - **What to draw** — the nodes, their arrangement, the edges, labels, regions,
   and any styling asks. Take it literally. Add nothing that was not asked for
   except a legend when three or more edge or box styles carry meaning.
-- **Output location** — a directory, and optionally a base filename. Default:
-  `diagrams/` under the current working directory, base name derived from the
-  diagram's subject (kebab-case, e.g. `order-pipeline`).
+- **Output location** — a directory, and optionally a base filename. When a
+  directory is given, write there exactly; do not add a subdirectory. Default
+  when none is given: `diagrams/` under the current working directory. Base
+  name derived from the diagram's subject (kebab-case, e.g. `order-pipeline`).
 - **Target width** — in pixels. Default 2000 px.
 
 If the description is ambiguous on layout, pick the reading a careful
